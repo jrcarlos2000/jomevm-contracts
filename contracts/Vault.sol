@@ -1,5 +1,5 @@
 // mint 10% JomEV token for user
-// Earn interest 
+// Earn interest
 // Stake JomEV token 90%
 // Store all the stableCoint token in here
 
@@ -9,54 +9,79 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-import "./DummyToken.sol";
+import "./EVToken.sol";
 
 contract Vault is Ownable {
+    EVToken public evToken;
 
-    DummyToken public EVToken;
-
-   uint256 DISTRIBUTION_POINT = 100;
-    // user address to EVToken Balance 
+    uint256 DISTRIBUTION_POINT = 100;
+    // provider address to EVToken Balance
     mapping(address => uint256) public EVTokenBalance;
-    // user address to tokenAddress  deposited
-    mapping(address => mapping(address=>uint256)) public UserTokenDeposited;
-    // token Address to amount 
+    // provider address to tokenAddress  deposited
+    mapping(address => mapping(address => uint256))
+        public providerTokenDeposited;
+    // token Address to amount
     mapping(address => uint256) public tokenBalance;
 
-    constructor(address _evToken){
-        EVToken = DummyToken(_evToken);
+    constructor() {}
+
+    function setEVTokenAddress(address _evToken) external onlyOwner {
+        evToken = EVToken(_evToken);
     }
 
-    function TransferOwner(address NewOwner) external onlyOwner{
+    function getEVTokenAddress() external view returns (address) {
+        return address(evToken);
+    }
+
+    function getEVTokenBalance(address provider)
+        external
+        view
+        returns (uint256)
+    {
+        return EVTokenBalance[provider];
+    }
+
+    function TransferOwner(address NewOwner) external onlyOwner {
         transferOwnership(NewOwner);
     }
 
-    function mintEVToken(address User, uint256 amount_deposited, address tokenAddress) external onlyOwner{
+    function mintEVToken(
+        address Provider,
+        uint256 amount_deposited,
+        address tokenAddress
+    ) external onlyOwner {
         tokenBalance[tokenAddress] = amount_deposited;
-        UserTokenDeposited[User][tokenAddress] = amount_deposited;
-        // User get 10% EV Token, Vault get 90% of EV Token
-        uint256 user_get = (amount_deposited * 10 * DISTRIBUTION_POINT) /100;
-        uint256 vault_get = (amount_deposited * 90 * DISTRIBUTION_POINT) /100;
-        EVToken.mintToken(User, user_get);
-        EVToken.mintToken(address(this),vault_get);
+        providerTokenDeposited[Provider][tokenAddress] = amount_deposited;
+        // Provider get 10% EV Token, Vault get 90% of EV Token
+        uint256 Provider_get = (amount_deposited * 10 * DISTRIBUTION_POINT) /
+            100;
+        uint256 vault_get = (amount_deposited * 90 * DISTRIBUTION_POINT) / 100;
+        evToken.mintToken(Provider, Provider_get);
+        evToken.mintToken(address(this), vault_get);
 
-        EVTokenBalance[User] = user_get;
+        EVTokenBalance[Provider] = Provider_get;
     }
 
-
     /*
-    * @dev get Token Balance of Vault
-    * @param tokenAddress: accepted token address
+     * @dev get Token Balance of Vault
+     * @param tokenAddress: accepted token address
      */
-    function getTokenBalance(address tokenAddress) external view onlyOwner returns(uint256){
+    function getTokenBalance(address tokenAddress)
+        external
+        view
+        onlyOwner
+        returns (uint256)
+    {
         return tokenBalance[tokenAddress];
     }
 
-    function getEVTokenBalance() external onlyOwner returns(uint256){
-        return EVToken.balanceOf(address(this));
+    function getEVTokenBalanceVault() external onlyOwner returns (uint256) {
+        return evToken.balanceOf(address(this));
     }
-    
-    function invest(address platform, address tokenAddress, uint256 amount) external onlyOwner{}
 
-
+    function invest(
+        address platform,
+        address tokenAddress,
+        uint256 amount
+    ) external onlyOwner {}
 }

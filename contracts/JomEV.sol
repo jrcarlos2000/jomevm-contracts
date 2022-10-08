@@ -14,29 +14,47 @@ struct Station {
     bool isActive;
 }
 
-contract JomEV is Ownable{
-
-    using Counters for Counters.Counter; 
+contract JomEV is Ownable {
+    using Counters for Counters.Counter;
     using SafeMath for uint256;
 
     IVault public vault;
 
-
-
     event UserJoined(address userAddr);
     event ProviderJoined(address providerAddr);
-    event BookingSubmited( uint256 chargingPointIndex,uint256 connectorIndex, uint256 fee, uint256 day, bytes3 bookingSlot);
-    event StationAdded(uint256 chargingPointId, uint256 connectorIndex, uint256 index, string cid, uint256 price);
-    event ChargingPointAdded(uint256 index, string cid, uint256 price, uint256 amountStaked);
-    event ConnectorDesactivated(uint256 charginPointIndex, uint256 connectorIndex);
+    event BookingSubmited(
+        uint256 chargingPointIndex,
+        uint256 connectorIndex,
+        uint256 fee,
+        uint256 day,
+        bytes3 bookingSlot
+    );
+    event StationAdded(
+        uint256 chargingPointId,
+        uint256 connectorIndex,
+        uint256 index,
+        string cid,
+        uint256 price
+    );
+    event ChargingPointAdded(
+        uint256 index,
+        string cid,
+        uint256 price,
+        uint256 amountStaked
+    );
+    event ConnectorDesactivated(
+        uint256 charginPointIndex,
+        uint256 connectorIndex
+    );
 
     mapping(address => bool) public isMember;
     mapping(address => bool) public isProvider;
     mapping(uint256 => Station) public stationsMap;
     mapping(uint256 => uint256) public station_time_lower_bound;
-    mapping(address => mapping (address => uint256)) public stakes;
-    mapping (address => bool) public isAcceptedPayment;
-    mapping(uint256 => mapping(uint256 => uint256)) public ChargingPointToStation;
+    mapping(address => mapping(address => uint256)) public stakes;
+    mapping(address => bool) public isAcceptedPayment;
+    mapping(uint256 => mapping(uint256 => uint256))
+        public ChargingPointToStation;
     mapping(uint256 => uint256) public StationCounterInChargingPoint;
 
     uint256 private TIMESTAMP_PER_DAY = 86400;
@@ -44,17 +62,25 @@ contract JomEV is Ownable{
     Counters.Counter public stationIDs;
     Counters.Counter public bookingIDs;
     Counters.Counter public ChargingPointIDs;
-    constructor (address _vault) {
+
+    constructor() {
         contract_time_lower_bound = block.timestamp;
-        vault = IVault(_vault);
     }
+
     modifier onlyUser() {
         require(isMember[msg.sender], "This Feature is only for users");
         _;
     }
     modifier onlyProvider() {
-        require(isProvider[msg.sender], "To become a provider you need to be a user of JomEV");
+        require(
+            isProvider[msg.sender],
+            "To become a provider you need to be a user of JomEV"
+        );
         _;
+    }
+
+    function setVault(address _vault) external onlyOwner {
+        vault = IVault(_vault);
     }
 
     //dummy function for now, we will use worldcoin to upgrade this
@@ -62,25 +88,45 @@ contract JomEV is Ownable{
         //worldcoin verification
         isMember[msg.sender] = true;
         emit UserJoined(msg.sender);
-    } 
+    }
+
     function joinAsProvider() external onlyUser {
         isProvider[msg.sender] = true;
         emit ProviderJoined(msg.sender);
     }
-    function addChargingPoint ( uint256 _pricePerHour, string calldata cid, address tokenAddr, uint256 nConnectors) external onlyProvider {
-        require(isAcceptedPayment[tokenAddr],"this token is not allowed");
-        uint256 amountToTransfer = _pricePerHour.mul(24).mul(7).mul(nConnectors);
-        IERC20(tokenAddr).transferFrom(msg.sender,address(vault),amountRequired);
+
+    function addChargingPoint(
+        uint256 _pricePerHour,
+        string calldata cid,
+        address tokenAddr,
+        uint256 nConnectors
+    ) external onlyProvider {
+        require(isAcceptedPayment[tokenAddr], "this token is not allowed");
+        uint256 amountToTransfer = _pricePerHour.mul(24).mul(7).mul(
+            nConnectors
+        );
+        IERC20(tokenAddr).transferFrom(
+            msg.sender,
+            address(vault),
+            amountToTransfer
+        );
+        vault.mintEVToken(msg.sender, amountToTransfer, tokenAddr);
         //IERC20(tokenAddr).transferFrom(msg.sender, address(this),amountToTransfer);
         stakes[tokenAddr][msg.sender] += amountToTransfer;
 
         ChargingPointIDs.increment();
         uint256 currChargingPointCount = ChargingPointIDs.current();
-        for(uint256 i=0; i<nConnectors ; i++){
+        for (uint256 i = 0; i < nConnectors; i++) {
             _addStation(_pricePerHour, cid, currChargingPointCount);
         }
-        emit ChargingPointAdded(stationIDs.current(), cid, _pricePerHour, amountToTransfer);
+        emit ChargingPointAdded(
+            stationIDs.current(),
+            cid,
+            _pricePerHour,
+            amountToTransfer
+        );
     }
+
     /**
     ** @dev 
     ** @note  
@@ -88,17 +134,45 @@ contract JomEV is Ownable{
         location : must be passed in coordinates or other relevant way
         tokenAddr : token which is used to perform the transaction , must be an approved token
     **/
-    function _addStation(uint256 _pricePerHour, string calldata location, uint256 chargingPointId) internal  {
+    function _addStation(
+        uint256 _pricePerHour,
+        string calldata location,
+        uint256 chargingPointId
+    ) internal {
         stationIDs.increment();
-        Station memory newStation = Station(_pricePerHour, location, msg.sender, [
-            bytes3(0),bytes3(0),bytes3(0),bytes3(0),bytes3(0),bytes3(0),bytes3(0),bytes3(0)
-        ],true);
-        station_time_lower_bound[stationIDs.current()] = contract_time_lower_bound;
+        Station memory newStation = Station(
+            _pricePerHour,
+            location,
+            msg.sender,
+            [
+                bytes3(0),
+                bytes3(0),
+                bytes3(0),
+                bytes3(0),
+                bytes3(0),
+                bytes3(0),
+                bytes3(0),
+                bytes3(0)
+            ],
+            true
+        );
+        station_time_lower_bound[
+            stationIDs.current()
+        ] = contract_time_lower_bound;
         stationsMap[stationIDs.current()] = newStation;
         StationCounterInChargingPoint[chargingPointId]++;
-        ChargingPointToStation[chargingPointId][StationCounterInChargingPoint[chargingPointId]] = stationIDs.current();
-        emit StationAdded(chargingPointId, StationCounterInChargingPoint[chargingPointId],stationIDs.current(), location, _pricePerHour);
+        ChargingPointToStation[chargingPointId][
+            StationCounterInChargingPoint[chargingPointId]
+        ] = stationIDs.current();
+        emit StationAdded(
+            chargingPointId,
+            StationCounterInChargingPoint[chargingPointId],
+            stationIDs.current(),
+            location,
+            _pricePerHour
+        );
     }
+
     /**
     ** @dev 
     ** @note  
@@ -110,65 +184,99 @@ contract JomEV is Ownable{
         tokenAddr : token which is used to perform the transaction , must be an approved token
 
     **/
-    function bookStation(uint256 chargingPointId, uint256 connectorIndex, uint256 day, bytes3 time, address tokenAddr) external  onlyUser{
-
+    function bookStation(
+        uint256 chargingPointId,
+        uint256 connectorIndex,
+        uint256 day,
+        bytes3 time,
+        address tokenAddr
+    ) external onlyUser {
         bookingIDs.increment();
         uint256 index = ChargingPointToStation[chargingPointId][connectorIndex];
-        require (index <= stationIDs.current() && index > 0,"index for booking not allowed");
-        require (time != bytes3(0) , "new schedule cannot be empty");
+        require(
+            index <= stationIDs.current() && index > 0,
+            "index for booking not allowed"
+        );
+        require(time != bytes3(0), "new schedule cannot be empty");
         Station memory selectedStation = stationsMap[index];
-        require(selectedStation.isActive,"Current Station is not active");
+        require(selectedStation.isActive, "Current Station is not active");
 
         //perform payment
         uint256 amountRequired = selectedStation.pricePerHour;
-        require(isAcceptedPayment[tokenAddr],"this token is not accepted");
+        require(isAcceptedPayment[tokenAddr], "this token is not accepted");
         //IERC20(tokenAddr).transferFrom(msg.sender, address(this) , amountRequired);
 
-        IERC20(tokenAddr).transferFrom(msg.sender,address(vault),amountRequired);
-
-        vault.mintEVToken(msg.sender, amountRequired, tokenAddr);
+        IERC20(tokenAddr).transferFrom(
+            msg.sender,
+            address(vault),
+            amountRequired
+        );
 
         uint256 startPointer = day;
         uint256 diff = block.timestamp - station_time_lower_bound[index];
-        if( diff > TIMESTAMP_PER_DAY){
+        if (diff > TIMESTAMP_PER_DAY) {
             uint256 quotient = (diff).div(TIMESTAMP_PER_DAY);
             uint256 n = quotient;
-            if(quotient>=7){
+            if (quotient >= 7) {
                 n = 7;
-                station_time_lower_bound[index]+=(TIMESTAMP_PER_DAY*(quotient.div(7)));
+                station_time_lower_bound[index] += (TIMESTAMP_PER_DAY *
+                    (quotient.div(7)));
             }
-            for ( uint8 i = 1 ; i <= n ; i++){
-                startPointer+=1;
+            for (uint8 i = 1; i <= n; i++) {
+                startPointer += 1;
                 selectedStation.availability[i] = bytes3(0);
             }
         }
         startPointer = startPointer % 7;
         bytes3 checkOverlap = time & selectedStation.availability[startPointer];
-        require(checkOverlap == bytes3(0) , "new schedule overlaps");
-        selectedStation.availability[startPointer] = time | selectedStation.availability[startPointer];
+        require(checkOverlap == bytes3(0), "new schedule overlaps");
+        selectedStation.availability[startPointer] =
+            time |
+            selectedStation.availability[startPointer];
         stationsMap[index] = selectedStation;
 
-        emit BookingSubmited(chargingPointId,connectorIndex,amountRequired, startPointer, time);
+        emit BookingSubmited(
+            chargingPointId,
+            connectorIndex,
+            amountRequired,
+            startPointer,
+            time
+        );
     }
 
-    function desactivateConnector(uint256 chargingPointIndex, uint256 connectorIndex) external onlyProvider {
-        require(stationsMap[ChargingPointToStation[chargingPointIndex][connectorIndex]].owner == msg.sender , "Caller is not the owner of the station");
-        stationsMap[ChargingPointToStation[chargingPointIndex][connectorIndex]].isActive = false;
-        
+    function desactivateConnector(
+        uint256 chargingPointIndex,
+        uint256 connectorIndex
+    ) external onlyProvider {
+        require(
+            stationsMap[
+                ChargingPointToStation[chargingPointIndex][connectorIndex]
+            ].owner == msg.sender,
+            "Caller is not the owner of the station"
+        );
+        stationsMap[ChargingPointToStation[chargingPointIndex][connectorIndex]]
+            .isActive = false;
+
         emit ConnectorDesactivated(chargingPointIndex, connectorIndex);
     }
+
     function addAcceptedPayment(address tokenAddr) external onlyOwner {
-        isAcceptedPayment[tokenAddr]= true;
+        isAcceptedPayment[tokenAddr] = true;
     }
+
     //readers
-    function getStation(uint256 index) external view returns(Station memory station){
+    function getStation(uint256 index)
+        external
+        view
+        returns (Station memory station)
+    {
         return (stationsMap[index]);
     }
 
-    /** 
-    **  @dev dummy call for usage in the testing
-    **/
-    function getBlockTimestamp() external view returns(uint256) {
-        return(block.timestamp);
+    /**
+     **  @dev dummy call for usage in the testing
+     **/
+    function getBlockTimestamp() external view returns (uint256) {
+        return (block.timestamp);
     }
 }

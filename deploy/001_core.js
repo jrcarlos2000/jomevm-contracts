@@ -14,6 +14,11 @@ const deployDummyToken = async () => {
   await deployWithConfirmation("DummyToken",["USD Tether","USDT"]);
 };
 
+const deployEVToken= async()=>{
+  const { deployerAddr, governorAddr } = await getNamedAccounts();
+  await deployWithConfirmation("EVToken",["EV Token","EVT"]);
+};
+
 const deployJomEV = async () => {
 
   const {deployerAddr} = await getNamedAccounts();
@@ -25,9 +30,25 @@ const deployJomEV = async () => {
 
 };
 
+const deployVault = async () => {
+
+  const {deployerAddr} = await getNamedAccounts();
+  const sDeployer = await ethers.provider.getSigner(deployerAddr);
+  await deployWithConfirmation("Vault");
+  const cVault = await ethers.getContract("Vault");
+  const cDummyToken = await ethers.getContract("DummyToken");
+  const cEVToken = await ethers.getContract("EVToken");
+  const cJomEV = await ethers.getContract("JomEV");
+  await cVault.connect(sDeployer).setEVTokenAddress(cEVToken.address);
+  await cJomEV.connect(sDeployer).setVault(cVault.address);
+
+};
+
 const main = async () => {
   await deployDummyToken();
+  await deployEVToken();
   await deployJomEV();
+  await deployVault();
 };
 
 main.id = "001_core";

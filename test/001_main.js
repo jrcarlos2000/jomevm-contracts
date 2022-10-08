@@ -3,7 +3,7 @@ const { ethers } = require("hardhat");
 const {defaultFixture} = require('./_fixture');
 const {loadFixture} = require('../utils/helpers');
 const { parseUnits, defaultAbiCoder, hexStripZeros } = require("ethers/lib/utils");
-
+const DISTRIBUTION_POINT = 100;
 async function approve(fromSigner, to , token, amount) {
   await token.connect(fromSigner).faucet();
   await token.connect(fromSigner).approve(to,amount);
@@ -20,18 +20,21 @@ describe("Main Test Suite", async () => {
   })
   describe("JomEV Core", async () => {
    it("should add users, add provider and create station", async () => {
-      const {JomEV, deployer, dummyToken,  account1, account2} = await loadFixture(defaultFixture);
+      const {JomEV, deployer,Vault, dummyToken,  account1, account2} = await loadFixture(defaultFixture);
+      await Vault.connect(deployer).TransferOwner(JomEV.address);
       await JomEV.connect(deployer).joinAsUser();
       await JomEV.connect(deployer).joinAsProvider();
       await approve(deployer,JomEV.address,dummyToken,parseUnits("0.000005").mul(24).mul(7).mul(2))
       await JomEV.connect(deployer).addChargingPoint(parseUnits("0.000005"),"Damansara",dummyToken.address,2);
    })
    it("can book station", async ()=> {
-      const {JomEV,dummyToken, deployer, account1, account2} = await loadFixture(defaultFixture);
+      const {JomEV,dummyToken, Vault, deployer, account1, account2} = await loadFixture(defaultFixture);
+      await Vault.connect(deployer).TransferOwner(JomEV.address);
       await JomEV.connect(deployer).joinAsUser();
       await JomEV.connect(deployer).joinAsProvider();
       await approve(deployer,JomEV.address,dummyToken,parseUnits("0.000005").mul(24).mul(7).mul(2))
-      await JomEV.connect(deployer).addChargingPoint(parseUnits("0.000005"),"Damansara",dummyToken.address,2);      await approve(deployer,JomEV.address,dummyToken,parseUnits("0.000005"));
+      await JomEV.connect(deployer).addChargingPoint(parseUnits("0.000005"),"Damansara",dummyToken.address,2);      
+      await approve(deployer,JomEV.address,dummyToken,parseUnits("0.000005"));
       await JomEV.connect(deployer).bookStation(1,1,1,"0x101000",dummyToken.address);
 
       //booking 2
@@ -39,7 +42,8 @@ describe("Main Test Suite", async () => {
       await JomEV.connect(deployer).bookStation(1,2,1,"0x101000",dummyToken.address);
    })
    it("booking details are right", async ()=> {
-    const {JomEV, deployer, dummyToken, account1, account2} = await loadFixture(defaultFixture);
+    const {JomEV,dummyToken, Vault, deployer, account1, account2} = await loadFixture(defaultFixture);
+    await Vault.connect(deployer).TransferOwner(JomEV.address);
     await JomEV.connect(deployer).joinAsUser();
     await JomEV.connect(deployer).joinAsProvider();
     await approve(deployer,JomEV.address,dummyToken,parseUnits("0.000005").mul(24).mul(7).mul(2))
@@ -61,7 +65,8 @@ describe("Main Test Suite", async () => {
     expect(stationData.availability[1].toLowerCase()).to.equal(output.toLowerCase());
  })
    it("can desactivate stations", async () => {
-    const {JomEV, dummyToken, deployer, account1, account2} = await loadFixture(defaultFixture);
+    const {JomEV, dummyToken, Vault, deployer, account1, account2} = await loadFixture(defaultFixture);
+    await Vault.connect(deployer).TransferOwner(JomEV.address);
     await JomEV.connect(account1).joinAsUser();
     await JomEV.connect(deployer).joinAsUser();
     await JomEV.connect(deployer).joinAsProvider();
@@ -102,7 +107,8 @@ describe("Main Test Suite", async () => {
     await expect(JomEV.connect(deployer).joinAsProvider()).to.be.revertedWith("This Feature is only for users");
    })
    it("cannot book station if time overlaps", async ()=>{
-    const {JomEV, dummyToken, deployer, account1, account2} = await loadFixture(defaultFixture);
+    const {JomEV,dummyToken, Vault, deployer, account1, account2} = await loadFixture(defaultFixture);
+    await Vault.connect(deployer).TransferOwner(JomEV.address);
     await JomEV.connect(account1).joinAsUser();
     await JomEV.connect(deployer).joinAsUser();
     await JomEV.connect(deployer).joinAsProvider();
@@ -116,4 +122,26 @@ describe("Main Test Suite", async () => {
     await expect(JomEV.connect(account1).bookStation(1,1,1,"0x100000",dummyToken.address)).to.be.revertedWith("new schedule overlaps");
    })
   })
+  describe("Vault", async () => {
+    it("should get Correct EV Token address", async () => {
+      const {JomEV,dummyToken,evToken, Vault, deployer, account1, account2} = await loadFixture(defaultFixture);
+      await Vault.connect(deployer).setEVTokenAddress(evToken.address);
+      await expect(await Vault.connect(deployer).getEVTokenAddress()).to.be.equal(evToken.address);
+    })
+    it("provider should get 10% of EV Token",async()=>{
+      const {JomEV,dummyToken, Vault, deployer, account1, account2} = await loadFixture(defaultFixture);
+      await Vault.connect(deployer).TransferOwner(JomEV.address);
+      await JomEV.connect(deployer).joinAsUser();
+      await JomEV.connect(deployer).joinAsProvider();
+      await approve(deployer,JomEV.address,dummyToken,parseUnits("0.000005").mul(24).mul(7).mul(2))
+      await JomEV.connect(deployer).addChargingPoint(parseUnits("0.000005"),"Damansara",dummyToken.address,2);      
+      const evToken_provider = parseUnits("0.000005").mul(24).mul(7).mul(2).mul(10).mul(DISTRIBUTION_POINT).div(100);
+      console.log("evToken_provider= ",evToken_provider);
+      const deployer_vault = await Vault.connect(deployer).getEVTokenBalance(deployer);
+      console.log("EVTokenBalance= ",deployer_vault);
+
+      expect(deployer_vault).to.be.equal(evToken_provider);
+      
+    })
+  }) 
 });
