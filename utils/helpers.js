@@ -5,6 +5,7 @@ const forkedNetwork = process.env.NETWORK;
 const isPolygon = hre.network.name === "polygon" || forkedNetwork == "polygon";
 const isMainnet = hre.network.name === "mainnet" || forkedNetwork == "mainnet";
 const isLocalHost = hre.network.name === "hardhat";
+const isScript = process.env.FLAGS == "scripts";
 console.log(hre.network.name);
 const isFork = hre.network.name == "localhost";
 
@@ -41,4 +42,5 @@ module.exports = {
   isFork,
   forkedNetwork,
   loadFixture,
+  isScript
 };

@@ -15,7 +15,8 @@
     "deploy:polygon" : "NETWORK=polygon npx hardhat deploy --network localhost",
     "deploy:mainnet" : "NETWORK=mainnet npx hardhat deploy --network localhost",
     "fund:bsc" : "npx hardhat --network localhost fund --fundnetwork bsc",
-    "fund:polygon" : "npx hardhat --network localhost fund --fundnetwork polygon"
+    "fund:polygon" : "npx hardhat --network localhost fund --fundnetwork polygon",
+    "run:scripts" : "FLAGS=scripts npx hardhat deploy"
   },
 
   "devDependencies": {
