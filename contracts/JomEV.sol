@@ -70,7 +70,8 @@ contract JomEV is Ownable{
     function addChargingPoint ( uint256 _pricePerHour, string calldata cid, address tokenAddr, uint256 nConnectors) external onlyProvider {
         require(isAcceptedPayment[tokenAddr],"this token is not allowed");
         uint256 amountToTransfer = _pricePerHour.mul(24).mul(7).mul(nConnectors);
-        IERC20(tokenAddr).transferFrom(msg.sender, address(this),amountToTransfer);
+        IERC20(tokenAddr).transferFrom(msg.sender,address(vault),amountRequired);
+        //IERC20(tokenAddr).transferFrom(msg.sender, address(this),amountToTransfer);
         stakes[tokenAddr][msg.sender] += amountToTransfer;
 
         ChargingPointIDs.increment();
