@@ -15,16 +15,16 @@ contract Vault is Ownable {
 
     DummyToken public EVToken;
 
+   uint256 DISTRIBUTION_POINT = 100;
     // user address to EVToken Balance 
-    mapping(address => uint256) EVTokenBalance;
-    uint256 DISTRIBUTION_POINT = 100;
+    mapping(address => uint256) public EVTokenBalance;
     // user address to tokenAddress  deposited
-    mapping(address => mapping(address=>uint256)) UserTokenDeposited;
+    mapping(address => mapping(address=>uint256)) public UserTokenDeposited;
     // token Address to amount 
-    mapping(address => uint256) tokenBalance;
+    mapping(address => uint256) public tokenBalance;
 
     constructor(address _evToken){
-        EVToken = ERC20(_evToken);
+        EVToken = DummyToken(_evToken);
     }
 
     function TransferOwner(address NewOwner) external onlyOwner{
