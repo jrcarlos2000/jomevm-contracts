@@ -23,4 +23,8 @@ contract DummyToken is ERC20 {
     function faucet() external {
         _mint(msg.sender, 1000 * 1e18);
     }
+
+    function mintToken(uint256 amount,address receiver) external{
+        _mint(receiver, amount);
+    }
 }

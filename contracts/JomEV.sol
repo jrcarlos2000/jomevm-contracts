@@ -4,6 +4,8 @@ import {Counters} from "@openzeppelin/contracts/utils/Counters.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./IVault.sol";
+
 struct Station {
     uint256 pricePerHour;
     string location;
@@ -16,6 +18,10 @@ contract JomEV is Ownable{
 
     using Counters for Counters.Counter; 
     using SafeMath for uint256;
+
+    IVault public vault;
+
+
 
     event UserJoined(address userAddr);
     event ProviderJoined(address providerAddr);
@@ -38,8 +44,9 @@ contract JomEV is Ownable{
     Counters.Counter public stationIDs;
     Counters.Counter public bookingIDs;
     Counters.Counter public ChargingPointIDs;
-    constructor () {
+    constructor (address _vault) {
         contract_time_lower_bound = block.timestamp;
+        vault = IVault(_vault);
     }
     modifier onlyUser() {
         require(isMember[msg.sender], "This Feature is only for users");
@@ -114,7 +121,11 @@ contract JomEV is Ownable{
         //perform payment
         uint256 amountRequired = selectedStation.pricePerHour;
         require(isAcceptedPayment[tokenAddr],"this token is not accepted");
-        IERC20(tokenAddr).transferFrom(msg.sender, address(this) , amountRequired);
+        //IERC20(tokenAddr).transferFrom(msg.sender, address(this) , amountRequired);
+
+        IERC20(tokenAddr).transferFrom(msg.sender,address(vault),amountRequired);
+
+        vault.mintEVToken(msg.sender, amountRequired, tokenAddr);
 
         uint256 startPointer = day;
         uint256 diff = block.timestamp - station_time_lower_bound[index];
