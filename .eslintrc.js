@@ -19,4 +19,5 @@ module.exports = {
       globals: { task: true },
     },
   ],
+  useTabs: false,
 };
