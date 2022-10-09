@@ -180,14 +180,14 @@ contract JomEV is Ownable {
 
     **/
     function bookStation(
-        uint256 chargingPointId,
+        string memory chargingPointId,
         uint256 connectorIndex,
         uint256 day,
         bytes3 time,
         address tokenAddr
     ) external onlyUser {
         bookingIDs.increment();
-        uint256 index = ChargingPointToStation[chargingPointId][connectorIndex];
+        uint256 index = ChargingPointToStation[StationIDtoStationIndex[chargingPointId]][connectorIndex];
         require(
             index <= stationIDs.current() && index > 0,
             "index for booking not allowed"
@@ -231,7 +231,7 @@ contract JomEV is Ownable {
         stationsMap[index] = selectedStation;
 
         emit BookingSubmited(
-            chargingPointId,
+            StationIDtoStationIndex[chargingPointId],
             connectorIndex,
             amountRequired,
             startPointer,
