@@ -75,7 +75,7 @@ contract Vault is Ownable {
         return tokenBalance[tokenAddress];
     }
 
-    function getEVTokenBalanceVault() external onlyOwner returns (uint256) {
+    function getEVTokenBalanceVault() external view returns (uint256) {
         return evToken.balanceOf(address(this));
     }
 

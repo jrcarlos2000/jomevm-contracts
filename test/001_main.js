@@ -143,5 +143,19 @@ describe("Main Test Suite", async () => {
       expect(deployer_vault).to.be.equal(evToken_provider);
       
     })
+    it("vault should get 90% of EV Token",async()=>{
+      const {JomEV,dummyToken, Vault, deployer, account1, account2} = await loadFixture(defaultFixture);
+      await Vault.connect(deployer).TransferOwner(JomEV.address);
+      await JomEV.connect(deployer).joinAsUser();
+      await JomEV.connect(deployer).joinAsProvider();
+      await approve(deployer,JomEV.address,dummyToken,parseUnits("0.000005").mul(24).mul(7).mul(2))
+      await JomEV.connect(deployer).addChargingPoint(parseUnits("0.000005"),"Damansara",dummyToken.address,2); 
+      const evToken_vault = parseUnits("0.000005").mul(24).mul(7).mul(2).mul(90).mul(DISTRIBUTION_POINT).div(100);
+      console.log("evToken_vault= ",evToken_vault);
+      const vault_contract = await Vault.connect(deployer).getEVTokenBalanceVault();
+      console.log("EVToken Contract Balance= ", vault_contract);
+
+      // expect(evToken_vault).to.be.equal(vault_contract/2);
+    })
   }) 
 });
