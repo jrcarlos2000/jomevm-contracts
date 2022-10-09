@@ -137,7 +137,7 @@ describe("Main Test Suite", async () => {
       await JomEV.connect(deployer).addChargingPoint(parseUnits("0.000005"),"Damansara",dummyToken.address,2);      
       const evToken_provider = parseUnits("0.000005").mul(24).mul(7).mul(2).mul(10).mul(DISTRIBUTION_POINT).div(100);
       console.log("evToken_provider= ",evToken_provider);
-      const deployer_vault = await Vault.connect(deployer).getEVTokenBalance(deployer);
+      const deployer_vault = await Vault.connect(deployer).getEVTokenBalance(deployer.address);
       console.log("EVTokenBalance= ",deployer_vault);
 
       expect(deployer_vault).to.be.equal(evToken_provider);
