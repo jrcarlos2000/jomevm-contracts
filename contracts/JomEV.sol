@@ -53,9 +53,10 @@ contract JomEV is Ownable {
     mapping(uint256 => uint256) public station_time_lower_bound;
     mapping(address => mapping(address => uint256)) public stakes;
     mapping(address => bool) public isAcceptedPayment;
-    mapping(uint256 => mapping(uint256 => uint256))
-        public ChargingPointToStation;
+    mapping(uint256 => mapping(uint256 => uint256)) public ChargingPointToStation;
     mapping(uint256 => uint256) public StationCounterInChargingPoint;
+
+    mapping(string => uint256) public StationIDtoStationIndex;
 
     uint256 private TIMESTAMP_PER_DAY = 86400;
     uint256 internal contract_time_lower_bound;
@@ -96,6 +97,7 @@ contract JomEV is Ownable {
     }
 
     function addChargingPoint(
+        string calldata chargingPointID,
         uint256 _pricePerHour,
         string calldata cid,
         address tokenAddr,
@@ -116,6 +118,7 @@ contract JomEV is Ownable {
 
         ChargingPointIDs.increment();
         uint256 currChargingPointCount = ChargingPointIDs.current();
+        StationIDtoStationIndex[chargingPointID] = currChargingPointCount;
         for (uint256 i = 0; i < nConnectors; i++) {
             _addStation(_pricePerHour, cid, currChargingPointCount);
         }
@@ -265,8 +268,8 @@ contract JomEV is Ownable {
         return (stationsMap[index]);
     }
 
-    function getConnector(uint256 chargingPointID , uint256 connectorID) external view returns (Station memory station){
-        return (stationsMap[ChargingPointToStation[chargingPointID][connectorID]]);
+    function getConnector(string memory chargingPointID , uint256 connectorID) external view returns (Station memory station){
+        return (stationsMap[ChargingPointToStation[StationIDtoStationIndex[chargingPointID]][connectorID]]);
     }
 
     /** 
@@ -274,10 +277,5 @@ contract JomEV is Ownable {
     **/
     function getBlockTimestamp() external view returns(uint256) {
         return(block.timestamp);
-    /**
-     **  @dev dummy call for usage in the testing
-     **/
-    function getBlockTimestamp() external view returns (uint256) {
-        return (block.timestamp);
     }
 }
