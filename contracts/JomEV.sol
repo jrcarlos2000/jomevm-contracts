@@ -89,7 +89,7 @@ contract JomEV is Ownable{
         stationsMap[stationIDs.current()] = newStation;
         StationCounterInChargingPoint[chargingPointId]++;
         ChargingPointToStation[chargingPointId][StationCounterInChargingPoint[chargingPointId]] = stationIDs.current();
-        emit StationAdded(chargingPointId, StationCounterInChargingPoint[chargingPointId],stationIDs.current(), location, _pricePerHour);
+        emit StationAdded(chargingPointId, StationCounterInChargingPoint[chargingPointId], stationIDs.current(), location, _pricePerHour);
     }
     /**
     ** @dev 
@@ -151,6 +151,10 @@ contract JomEV is Ownable{
     //readers
     function getStation(uint256 index) external view returns(Station memory station){
         return (stationsMap[index]);
+    }
+
+    function getConnector(uint256 chargingPointID , uint256 connectorID) external view returns (Station memory station){
+        return (stationsMap[ChargingPointToStation[chargingPointID][connectorID]]);
     }
 
     /** 
